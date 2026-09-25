@@ -1,9 +1,11 @@
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SUMMARY, INVESTMENT_BARS } from '../data';
 import { inr, signedInr } from '../format';
 import { useStore } from '../store';
 import { useTheme } from '../ThemeContext';
+import { useBackHeader, useMainHeader } from '../components/AppHeader';
 import { AddButton, Avatar, BackRow, BarRow, fonts, Icon, SectionHead, useStyles } from '../ui';
 function HeroStat({ label, value, color }) {
     const { palette } = useTheme();
@@ -13,8 +15,10 @@ function HeroStat({ label, value, color }) {
     </View>);
 }
 export function DashboardScreen() {
+    useMainHeader();
     const { palette, styles } = useStyles();
-    const { capital, projects, openProject } = useStore();
+    const navigation = useNavigation();
+  const { capital, projects, selectProject } = useStore();
     return (<View style={styles.screen}>
       <View style={[styles.card, { padding: 20, marginBottom: 8 }]}>
         <Text style={styles.label}>Total capital invested</Text>
@@ -34,7 +38,7 @@ export function DashboardScreen() {
 
       <SectionHead title="Projects" right="tap to open"/>
       <View style={styles.card}>
-        {projects.map((p, i) => (<Pressable key={p.id} onPress={() => openProject(p.id)} style={{ paddingVertical: 16, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
+        {projects.map((p, i) => (<Pressable key={p.id} onPress={() => { selectProject(p.id); navigation.navigate('ProjectDetail'); }} style={{ paddingVertical: 16, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
             <View style={styles.rowBetween}>
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={styles.name}>{p.title}</Text>
@@ -59,12 +63,14 @@ export function DashboardScreen() {
     </View>);
 }
 export function PartnersScreen() {
+    useMainHeader();
     const { styles, palette } = useStyles();
-    const { partners, openPartner, openPartnerSheet } = useStore();
+    const navigation = useNavigation();
+  const { partners, selectPartner, openPartnerSheet } = useStore();
     return (<View style={styles.screen}>
       <SectionHead title="Partners" right={<AddButton label="+ Add partner" onPress={() => openPartnerSheet('global')}/>}/>
       <View style={styles.card}>
-        {partners.map((p, i) => (<Pressable key={p.id} onPress={() => openPartner(p.id)} style={{ flexDirection: 'row', gap: 13, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
+        {partners.map((p, i) => (<Pressable key={p.id} onPress={() => { selectPartner(p.id); navigation.navigate('PartnerDetail'); }} style={{ flexDirection: 'row', gap: 13, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
             <Avatar initials={p.initials} color={p.color}/>
             <View style={{ flex: 1 }}>
               <View style={styles.rowBetween}>
@@ -86,6 +92,7 @@ export function PartnersScreen() {
     </View>);
 }
 export function LedgerScreen() {
+    useMainHeader();
     const { styles, palette } = useStyles();
     const { transactions, projects, ledgerProject, setLedgerProject } = useStore();
     const names = ['all', ...projects.map((p) => p.title)];
@@ -142,12 +149,13 @@ export function LedgerScreen() {
 }
 export function ProjectDetailScreen() {
     const { styles, palette } = useStyles();
-    const { projects, activeProjectId, openTab, setLedgerProject, openPartnerSheet } = useStore();
+    const navigation = useNavigation();
+    const { projects, activeProjectId, setLedgerProject, openPartnerSheet } = useStore();
     const project = projects.find((p) => p.id === activeProjectId);
+    useBackHeader(project?.title ?? 'Project');
     if (!project)
         return null;
     return (<View style={styles.screen}>
-      <BackRow title={project.title} onPress={() => openTab('dashboard')}/>
       <View style={[styles.card, { padding: 18, marginBottom: 8 }]}>
         <Text style={styles.label}>{project.locDetail}</Text>
         <View style={{ borderTopWidth: 1, borderTopColor: palette.border, marginTop: 12 }}>
@@ -197,7 +205,7 @@ export function ProjectDetailScreen() {
       </Text>
       <Pressable onPress={() => {
             setLedgerProject(project.title);
-            openTab('ledger');
+            navigation.navigate('Tabs', { screen: 'Ledger' });
         }} style={{ borderWidth: 1, borderColor: palette.borderStrong, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginTop: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Text style={{ fontFamily: fonts.sansBold, color: palette.text }}>View this project's transactions</Text>
@@ -208,7 +216,8 @@ export function ProjectDetailScreen() {
 }
 export function PartnerDetailScreen() {
     const { styles, palette } = useStyles();
-    const { partners, projects, activePartnerId, openTab } = useStore();
+    const navigation = useNavigation();
+    const { partners, projects, activePartnerId } = useStore();
     const partner = partners.find((p) => p.id === activePartnerId);
     if (!partner)
         return null;
@@ -224,7 +233,7 @@ export function PartnerDetailScreen() {
     const totalInvested = rows.reduce((s, x) => s + x.invested, 0) || partner.invested;
     const totalPl = rows.reduce((s, x) => s + x.pl, 0) || partner.pl;
     return (<View style={styles.screen}>
-      <BackRow title="Partner" onPress={() => openTab('partners')}/>
+      <BackRow title="Partner" onPress={() => navigation.navigate('Tabs', { screen: 'Partners' })}/>
       <View style={{ alignItems: 'center', marginBottom: 16 }}>
         <Avatar initials={partner.initials} color={partner.color} size={68}/>
         <Text style={{ fontFamily: fonts.serif, fontSize: 19, color: palette.text, marginTop: 12 }}>{partner.name}</Text>

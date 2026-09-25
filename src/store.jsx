@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { AVATAR_COLORS, seedPartners, seedProjects, seedSessions, seedTransactions, SUMMARY } from './data';
+import { AVATAR_COLORS, seedPartners, seedProjects, seedSessions, seedTransactions, SUMMARY, USER } from './data';
 import { fyProration, initials, longDate } from './format';
 const Ctx = createContext(null);
 export function StoreProvider({ children }) {
     const [loggedIn, setLoggedIn] = useState(false);
-    const [screen, setScreen] = useState('dashboard');
-    const [lastTab, setLastTab] = useState('dashboard');
+    const [profile, setProfile] = useState(USER);
     const [capital, setCapital] = useState(SUMMARY.capital);
     const [projects, setProjects] = useState(seedProjects);
     const [partners, setPartners] = useState(seedPartners);
@@ -22,11 +21,6 @@ export function StoreProvider({ children }) {
         setToast({ message, id });
         setTimeout(() => setToast((current) => (current?.id === id ? null : current)), 2200);
     };
-    const go = (id) => setScreen(id);
-    const openTab = (id) => {
-        setLastTab(id);
-        setScreen(id);
-    };
     const value = useMemo(() => ({
         loggedIn,
         login: (email, password) => {
@@ -36,15 +30,12 @@ export function StoreProvider({ children }) {
             return null;
         },
         skipLogin: () => setLoggedIn(true),
-        logout: () => {
-            setLoggedIn(false);
-            setScreen('dashboard');
-            setLastTab('dashboard');
+        logout: () => setLoggedIn(false),
+        profile,
+        updateProfile: (next) => {
+            setProfile((current) => ({ ...current, ...next, initials: initials(next.name || current.name) }));
+            showToast('Profile updated');
         },
-        screen,
-        lastTab,
-        go,
-        openTab,
         capital,
         projects,
         partners,
@@ -52,15 +43,9 @@ export function StoreProvider({ children }) {
         ledgerProject,
         setLedgerProject,
         activeProjectId,
-        openProject: (id) => {
-            setActiveProjectId(id);
-            setScreen('projectDetail');
-        },
+        selectProject: (id) => setActiveProjectId(id),
         activePartnerId,
-        openPartner: (id) => {
-            setActivePartnerId(id);
-            setScreen('partnerDetail');
-        },
+        selectPartner: (id) => setActivePartnerId(id),
         partnerSheet,
         openPartnerSheet: (source) => setPartnerSheet(source),
         closePartnerSheet: () => setPartnerSheet('closed'),
@@ -83,8 +68,6 @@ export function StoreProvider({ children }) {
             if (type === 'investment')
                 setCapital((n) => n + amount);
             setLedgerProject('all');
-            setLastTab('ledger');
-            setScreen('ledger');
             setTxSheet(false);
             showToast(inflow ? 'Transaction added' : 'Expense logged');
         },
@@ -120,8 +103,6 @@ export function StoreProvider({ children }) {
             };
             setPartners((list) => [...list, next]);
             setPartnerSheet('closed');
-            setLastTab('partners');
-            setScreen('partners');
             showToast(`${name} added as a partner`);
         },
         sessions,
@@ -133,8 +114,7 @@ export function StoreProvider({ children }) {
         showToast,
     }), [
         loggedIn,
-        screen,
-        lastTab,
+        profile,
         capital,
         projects,
         partners,

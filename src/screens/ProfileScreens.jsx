@@ -1,69 +1,124 @@
-import React, { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { FAQS, USER } from '../data';
+import { useBackHeader } from '../components/AppHeader';
+import { FAQS } from '../data';
 import { inr } from '../format';
 import { useStore } from '../store';
 import { useTheme } from '../ThemeContext';
-import { AddButton, Avatar, BackRow, InfoRow, LinkRow, fonts, Icon, SectionHead, SwitchRow, useStyles } from '../ui';
+import { AddButton, Avatar, Field, Icon, LinkRow, Sheet, fonts, SectionHead, SwitchRow, useStyles } from '../ui';
 export function ProfileScreen() {
+    useBackHeader('Profile');
     const { styles, palette } = useStyles();
     const { mode, setMode } = useTheme();
-    const { go, logout, lastTab, openTab } = useStore();
+    const navigation = useNavigation();
+    const { logout, profile, updateProfile } = useStore();
+    const [editing, setEditing] = useState(false);
+    const [name, setName] = useState(profile.name);
+    const [email, setEmail] = useState(profile.email);
+    const [phone, setPhone] = useState(profile.phone);
+    const [gstin, setGstin] = useState(profile.gstin);
     const modes = [
         { id: 'light', icon: 'white-balance-sunny', label: 'Light' },
         { id: 'dark', icon: 'moon-waning-crescent', label: 'Dark' },
         { id: 'system', icon: 'theme-light-dark', label: 'System' },
     ];
+    const links = [
+        { icon: 'bell-outline', label: 'Notifications', screen: 'Notifications' },
+        { icon: 'lock-outline', label: 'Security & login', screen: 'Security' },
+        { icon: 'account-multiple-outline', label: 'Manage partners', screen: 'ManagePartners' },
+        { icon: 'help-circle-outline', label: 'Help & support', screen: 'Help' },
+    ];
+    const details = [
+        { icon: 'account-outline', label: 'Full name', value: profile.name },
+        { icon: 'email-outline', label: 'Email', value: profile.email },
+        { icon: 'phone-outline', label: 'Phone', value: profile.phone },
+        { icon: 'file-document-outline', label: 'GSTIN', value: profile.gstin },
+    ];
+    const openEdit = useCallback(() => {
+        setName(profile.name);
+        setEmail(profile.email);
+        setPhone(profile.phone);
+        setGstin(profile.gstin);
+        setEditing(true);
+    }, [profile]);
     return (<View style={styles.screen}>
-      <BackRow title="Profile" onPress={() => openTab(lastTab)}/>
-      <View style={{ alignItems: 'center', marginBottom: 8 }}>
-        <Avatar initials={USER.initials} color={palette.ink} size={68}/>
-        <Text style={{ fontFamily: fonts.serif, fontSize: 19, color: palette.text, marginTop: 12 }}>{USER.name}</Text>
-        <Text style={{ fontFamily: fonts.sansSemi, color: palette.muted, marginTop: 3 }}>{USER.role}</Text>
-        <Text style={{ fontFamily: fonts.sans, color: palette.muted2, marginTop: 6, fontSize: 12 }}>{USER.email}</Text>
+      <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+        <View style={{ padding: 4, borderRadius: 48, backgroundColor: palette.greenSoft }}>
+          <Avatar initials={profile.initials} color={palette.ink} size={84}/>
+        </View>
+        <Text style={{ fontFamily: fonts.sansBold, fontSize: 24, color: palette.text, marginTop: 14, letterSpacing: -0.5 }}>{profile.name}</Text>
+        <View style={{ marginTop: 8, backgroundColor: palette.inkSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
+          <Text style={{ fontFamily: fonts.sansSemi, fontSize: 12, color: palette.ink }}>{profile.role}</Text>
+        </View>
+        <Pressable onPress={openEdit} style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: palette.text, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 10 }}>
+          <Icon name="pencil-outline" size={16} color={palette.onAccent}/>
+          <Text style={{ color: palette.onAccent, fontFamily: fonts.sansBold, fontSize: 13 }}>Edit profile</Text>
+        </Pressable>
       </View>
-      <SectionHead title="Appearance"/>
-      <View style={{ flexDirection: 'row', backgroundColor: palette.surface2, borderWidth: 1, borderColor: palette.border, borderRadius: 6, padding: 3 }}>
+
+      <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: palette.muted, marginTop: 22, marginBottom: 10, letterSpacing: 0.4 }}>APPEARANCE</Text>
+      <View style={{ flexDirection: 'row', backgroundColor: palette.surface, borderRadius: 16, padding: 4, borderWidth: 1, borderColor: palette.border }}>
         {modes.map((m) => {
             const active = mode === m.id;
-            return (<Pressable key={m.id} onPress={() => setMode(m.id)} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 4, backgroundColor: active ? palette.surface : 'transparent' }}>
-              <Icon name={m.icon} size={16} color={active ? palette.text : palette.muted}/>
-              <Text style={{ fontFamily: fonts.sansSemi, fontSize: 12, color: active ? palette.text : palette.muted, marginTop: 4 }}>{m.label}</Text>
+            return (<Pressable key={m.id} onPress={() => setMode(m.id)} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: active ? palette.greenSoft : 'transparent' }}>
+              <Icon name={m.icon} size={18} color={active ? palette.green : palette.muted}/>
+              <Text style={{ fontFamily: fonts.sansSemi, fontSize: 12, color: active ? palette.green : palette.muted, marginTop: 4 }}>{m.label}</Text>
             </Pressable>);
         })}
       </View>
-      <SectionHead title="Account"/>
-      <View style={[styles.card, { paddingHorizontal: 16 }]}>
-        <InfoRow label="Full name" value={USER.name}/>
-        <View style={styles.divider}/>
-        <InfoRow label="Email" value={USER.email}/>
-        <View style={styles.divider}/>
-        <InfoRow label="Phone" value={USER.phone}/>
-        <View style={styles.divider}/>
-        <InfoRow label="GSTIN" value={USER.gstin}/>
+
+      <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: palette.muted, marginTop: 22, marginBottom: 10, letterSpacing: 0.4 }}>ACCOUNT</Text>
+      <View style={{ backgroundColor: palette.surface, borderRadius: 16, borderWidth: 1, borderColor: palette.border, paddingHorizontal: 14 }}>
+        {details.map((item, index) => (<View key={item.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderTopWidth: index === 0 ? 0 : 1, borderTopColor: palette.border }}>
+          <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: palette.surface2, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={item.icon} size={18} color={palette.text}/>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: fonts.sansMed, fontSize: 12, color: palette.muted2 }}>{item.label}</Text>
+            <Text style={{ fontFamily: fonts.sansSemi, fontSize: 15, color: palette.text, marginTop: 2 }}>{item.value}</Text>
+          </View>
+        </View>))}
       </View>
-      <SectionHead title="Preferences"/>
-      <View style={[styles.card, { paddingHorizontal: 14 }]}>
-        <LinkRow icon="bell-outline" label="Notifications" onPress={() => go('notifications')}/>
-        <View style={styles.divider}/>
-        <LinkRow icon="lock-outline" label="Security & login" onPress={() => go('security')}/>
-        <View style={styles.divider}/>
-        <LinkRow icon="account-multiple-outline" label="Manage partners" onPress={() => go('managePartners')}/>
-        <View style={styles.divider}/>
-        <LinkRow icon="help-circle-outline" label="Help & support" onPress={() => go('help')}/>
+
+      <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: palette.muted, marginTop: 22, marginBottom: 10, letterSpacing: 0.4 }}>SETTINGS</Text>
+      <View style={{ backgroundColor: palette.surface, borderRadius: 16, borderWidth: 1, borderColor: palette.border, paddingHorizontal: 14 }}>
+        {links.map((item, index) => (<Pressable key={item.screen} onPress={() => navigation.navigate(item.screen)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderTopWidth: index === 0 ? 0 : 1, borderTopColor: palette.border }}>
+          <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: palette.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={item.icon} size={18} color={palette.gold}/>
+          </View>
+          <Text style={{ flex: 1, fontFamily: fonts.sansSemi, fontSize: 15, color: palette.text }}>{item.label}</Text>
+          <Icon name="chevron-right" size={22} color={palette.muted2}/>
+        </Pressable>))}
       </View>
-      <Pressable onPress={logout} style={{ marginTop: 18, borderWidth: 1, borderColor: palette.clay, borderRadius: 4, paddingVertical: 14, alignItems: 'center' }}>
-        <Text style={{ color: palette.clay, fontFamily: fonts.sansBold }}>Log out</Text>
+
+      <Pressable onPress={logout} style={{ marginTop: 20, backgroundColor: palette.claySoft, borderRadius: 16, paddingVertical: 15, alignItems: 'center' }}>
+        <Text style={{ color: palette.clay, fontFamily: fonts.sansBold, fontSize: 15 }}>Log out</Text>
       </Pressable>
+
+      <Sheet visible={editing} title="Edit profile" onClose={() => setEditing(false)}>
+        <Field flex={0} label="Full name" value={name} onChangeText={setName} placeholder="Your name"/>
+        <Field flex={0} label="Email" value={email} onChangeText={setEmail} placeholder="you@company.com" keyboardType="email-address"/>
+        <Field flex={0} label="Phone" value={phone} onChangeText={setPhone} placeholder="+91" keyboardType="phone-pad"/>
+        <Field flex={0} label="GSTIN" value={gstin} onChangeText={setGstin} placeholder="29ABCDE1234F1Z5"/>
+        <Pressable onPress={() => {
+            if (!name.trim() || !email.trim())
+                return;
+            updateProfile({ name: name.trim(), email: email.trim(), phone: phone.trim(), gstin: gstin.trim() });
+            setEditing(false);
+        }} style={[styles.submit, { borderRadius: 14 }]}>
+          <Text style={styles.submitText}>Save changes</Text>
+        </Pressable>
+        <View style={{ height: 12 }}/>
+      </Sheet>
     </View>);
 }
 export function NotificationsScreen() {
+    useBackHeader('Notifications');
     const { styles } = useStyles();
-    const { go } = useStore();
     const [flags, setFlags] = useState({ pay: true, exp: true, gst: true, partner: false, weekly: true, monthly: true });
     const set = (key) => setFlags((f) => ({ ...f, [key]: !f[key] }));
     return (<View style={styles.screen}>
-      <BackRow title="Notifications" onPress={() => go('profile')}/>
       <SectionHead title="Push"/>
       <View style={[styles.card, { paddingHorizontal: 16 }]}>
         <SwitchRow title="Payment received" detail="When a client or partner payment lands" value={flags.pay} onChange={() => set('pay')}/>
@@ -83,12 +138,12 @@ export function NotificationsScreen() {
     </View>);
 }
 export function SecurityScreen() {
+    useBackHeader('Security & login');
     const { styles, palette } = useStyles();
-    const { go, sessions, endSession, showToast } = useStore();
+    const { sessions, endSession, showToast } = useStore();
     const [twofa, setTwofa] = useState(true);
     const [bio, setBio] = useState(false);
     return (<View style={styles.screen}>
-      <BackRow title="Security & login" onPress={() => go('profile')}/>
       <SectionHead title="Login"/>
       <View style={[styles.card, { paddingHorizontal: 16 }]}>
         <LinkRow icon="key-outline" label="Change password" onPress={() => showToast('Password change is a demo')}/>
@@ -116,10 +171,10 @@ export function SecurityScreen() {
     </View>);
 }
 export function ManagePartnersScreen() {
+    useBackHeader('Manage partners');
     const { styles, palette } = useStyles();
-    const { go, partners, openPartnerSheet, showToast } = useStore();
+    const { partners, openPartnerSheet, showToast } = useStore();
     return (<View style={styles.screen}>
-      <BackRow title="Manage partners" onPress={() => go('profile')}/>
       <SectionHead title="All partners" right={<AddButton label="+ Add partner" onPress={() => openPartnerSheet('global')}/>}/>
       {partners.map((p) => (<View key={p.id} style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 10 }]}>
           <Avatar initials={p.initials} color={p.color}/>
@@ -135,8 +190,9 @@ export function ManagePartnersScreen() {
     </View>);
 }
 export function HelpScreen() {
+    useBackHeader('Help & support');
     const { styles, palette } = useStyles();
-    const { go, showToast } = useStore();
+    const { showToast } = useStore();
     const [open, setOpen] = useState(null);
     const contacts = [
         { icon: 'chat-outline', title: 'Chat with support' },
@@ -144,7 +200,6 @@ export function HelpScreen() {
         { icon: 'bug-outline', title: 'Report an issue' },
     ];
     return (<View style={styles.screen}>
-      <BackRow title="Help & support" onPress={() => go('profile')}/>
       <SectionHead title="Contact"/>
       <View style={[styles.card, { paddingHorizontal: 14 }]}>
         {contacts.map((c, i) => (<Pressable key={c.title} onPress={() => showToast('Support inbox is a demo')} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>

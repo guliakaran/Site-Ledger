@@ -2,6 +2,7 @@
  * @format
  */
 
+import 'react-native-gesture-handler';
 import { AppRegistry, Platform, Text, TextInput } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';

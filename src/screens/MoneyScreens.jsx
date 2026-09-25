@@ -4,8 +4,10 @@ import { FY_REPORTS, GST, REVENUE_BARS, SUMMARY } from '../data';
 import { inr, signedInr } from '../format';
 import { useStore } from '../store';
 import { useTheme } from '../ThemeContext';
+import { useMainHeader } from '../components/AppHeader';
 import { BarRow, Chip, fonts, Icon, SectionHead, useStyles } from '../ui';
 export function RevenueScreen() {
+    useMainHeader();
     const { styles, palette } = useStyles();
     const income = useStore().transactions.filter((t) => t.type === 'income');
     return (<View style={styles.screen}>
@@ -41,6 +43,7 @@ export function RevenueScreen() {
     </View>);
 }
 export function GstScreen() {
+    useMainHeader();
     const { styles, palette } = useStyles();
     return (<View style={styles.screen}>
       <SectionHead title="GST filing" right="FY 2026–27"/>
@@ -93,6 +96,7 @@ export function GstScreen() {
     </View>);
 }
 export function ReportsScreen() {
+    useMainHeader();
     const { styles, palette } = useStyles();
     const { showToast } = useStore();
     const [fy, setFy] = useState('2026');

@@ -133,18 +133,8 @@ export function Avatar({ initials, color, size = 38 }) {
 }
 export function BackRow({ title, onPress }) {
     const { palette } = useTheme();
-    return (<Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, marginTop: 4 }}>
-      <View style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            borderWidth: 1,
-            borderColor: palette.borderStrong,
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}>
-        <Icon name="arrow-left" size={16} color={palette.text}/>
-      </View>
+    return (<Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 18, marginTop: 4 }}>
+      <Icon name="chevron-left" size={28} color={palette.text}/>
       <Text style={{ fontFamily: fonts.sansBold, fontSize: 16, color: palette.text, letterSpacing: -0.2 }}>{title}</Text>
     </Pressable>);
 }
@@ -169,11 +159,11 @@ export function Chip({ label, active, onPress }) {
       <Text style={{ color: active ? palette.onAccent : palette.muted, fontFamily: fonts.sansSemi, fontSize: 12.5 }}>{label}</Text>
     </Pressable>);
 }
-export function Field({ label, value, onChangeText, placeholder, keyboardType, secureTextEntry, }) {
+export function Field({ label, value, onChangeText, placeholder, keyboardType, secureTextEntry, flex = 1, inputStyle, }) {
     const { styles } = useStyles();
-    return (<View style={{ marginBottom: 14, flex: 1 }}>
+    return (<View style={{ marginBottom: 14, flex }}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={styles.muted.color} keyboardType={keyboardType} secureTextEntry={secureTextEntry} autoCapitalize="none" style={styles.input}/>
+      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={styles.muted.color} keyboardType={keyboardType} secureTextEntry={secureTextEntry} autoCapitalize="none" style={[styles.input, inputStyle]}/>
     </View>);
 }
 export function Choice({ label, value, options, onChange, }) {
