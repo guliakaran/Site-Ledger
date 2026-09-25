@@ -1,12 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PanResponder, Pressable, Text, View } from 'react-native';
 import { SUMMARY, INVESTMENT_BARS } from '../data';
 import { inr, signedInr } from '../format';
 import { useStore } from '../store';
 import { useTheme } from '../ThemeContext';
 import { useBackHeader, useMainHeader } from '../components/AppHeader';
-import { AddButton, Avatar, BackRow, BarRow, fonts, Icon, SectionHead, useStyles } from '../ui';
+import { AddButton, Avatar, BackRow, BarRow, Chip, Field, fonts, Icon, SectionHead, Sheet, useStyles } from '../ui';
 function HeroStat({ label, value, color }) {
     const { palette } = useTheme();
     return (<View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 4 }}>
@@ -125,32 +125,203 @@ export function LedgerScreen() {
             </Pressable>);
         })}
       </View>
-      {groups.length === 0 ? (<Text style={{ textAlign: 'center', color: palette.muted2, marginTop: 30, fontFamily: fonts.sans }}>No transactions for this project yet.</Text>) : (groups.map((g) => (<View key={g.label}>
-            <Text style={[styles.hint, { marginTop: 16, marginBottom: 6 }]}>
-              {new Date(g.label + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-            </Text>
-            <View style={styles.card}>
-              {g.rows.map((tx, i) => {
-                const inflow = tx.amount >= 0;
-                return (<View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: inflow ? palette.greenSoft : palette.claySoft, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={inflow ? 'arrow-down' : 'arrow-up'} size={16} color={inflow ? palette.green : palette.clay}/>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: fonts.sansBold, fontSize: 13.5, color: palette.text }}>{tx.description}</Text>
-                      <Text style={[styles.muted, { marginTop: 2 }]}>{tx.detail.includes(tx.project) ? tx.detail : `${tx.detail} · ${tx.project}`}</Text>
-                    </View>
-                    <Text style={{ fontFamily: fonts.mono, fontSize: 13, color: inflow ? palette.green : palette.clay }}>{signedInr(tx.amount)}</Text>
-                  </View>);
-            })}
-            </View>
-          </View>)))}
+      <TransactionGroups groups={groups} />
+    </View>);
+}
+function groupTransactions(list) {
+    const groups = [];
+    list.forEach((tx) => {
+        const label = tx.date;
+        const last = groups[groups.length - 1];
+        if (last && last.label === label)
+            last.rows.push(tx);
+        else
+            groups.push({ label, rows: [tx] });
+    });
+    return groups;
+}
+function TransactionGroups({ groups }) {
+    const { styles, palette } = useStyles();
+    if (groups.length === 0) {
+        return <Text style={{ textAlign: 'center', color: palette.muted2, marginTop: 30, fontFamily: fonts.sans }}>No transactions for this project yet.</Text>;
+    }
+    return groups.map((g) => (<View key={g.label}>
+      <Text style={[styles.hint, { marginTop: 16, marginBottom: 6 }]}>
+        {new Date(g.label + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+      </Text>
+      <View style={styles.card}>
+        {g.rows.map((tx, i) => {
+            const inflow = tx.amount >= 0;
+            return (<View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: inflow ? palette.greenSoft : palette.claySoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={inflow ? 'arrow-down' : 'arrow-up'} size={16} color={inflow ? palette.green : palette.clay}/>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.sansBold, fontSize: 13.5, color: palette.text }}>{tx.description}</Text>
+                  <Text style={[styles.muted, { marginTop: 2 }]}>{tx.detail.includes(tx.project) ? tx.detail : `${tx.detail} · ${tx.project}`}</Text>
+                </View>
+                <Text style={{ fontFamily: fonts.mono, fontSize: 13, color: inflow ? palette.green : palette.clay }}>{signedInr(tx.amount)}</Text>
+              </View>);
+        })}
+      </View>
+    </View>));
+}
+const DATE_FILTERS = [
+    { id: 'all', label: 'All dates' },
+    { id: 'month', label: 'This month' },
+    { id: '7d', label: 'Last 7 days' },
+    { id: 'custom', label: 'Custom' },
+];
+function localIso(d) {
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`;
+}
+function inDateRange(date, filter, from, to) {
+    if (filter === 'all')
+        return true;
+    const today = new Date();
+    const iso = localIso;
+    if (filter === 'month') {
+        const start = iso(new Date(today.getFullYear(), today.getMonth(), 1));
+        const end = iso(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+        return date >= start && date <= end;
+    }
+    if (filter === '7d') {
+        const start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        return date >= iso(start) && date <= iso(today);
+    }
+    const fromOk = !from || date >= from;
+    const toOk = !to || date <= to;
+    return fromOk && toOk;
+}
+const SIGN_FILTERS = [
+    { id: 'all', label: 'All' },
+    { id: 'positive', label: 'Positive' },
+    { id: 'negative', label: 'Negative' },
+];
+function amountStep(max) {
+    if (max >= 1000000)
+        return 10000;
+    if (max >= 100000)
+        return 5000;
+    if (max >= 10000)
+        return 1000;
+    return 100;
+}
+function snapAmount(value, min, max) {
+    const step = amountStep(max);
+    const snapped = Math.round(value / step) * step;
+    return Math.min(max, Math.max(min, snapped));
+}
+function RangeSlider({ min, max, low, high, onChangeLow, onChangeHigh }) {
+    const { palette } = useTheme();
+    const widthRef = useRef(1);
+    const stateRef = useRef({ min, max, low, high, onChangeLow, onChangeHigh });
+    stateRef.current = { min, max, low, high, onChangeLow, onChangeHigh };
+    const startRef = useRef({ low, high });
+    const pans = useRef({
+        low: PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => { startRef.current.low = stateRef.current.low; },
+            onPanResponderMove: (_, gesture) => {
+                const current = stateRef.current;
+                const span = current.max - current.min || 1;
+                const origin = ((startRef.current.low - current.min) / span) * widthRef.current;
+                const next = snapAmount(current.min + ((origin + gesture.dx) / widthRef.current) * span, current.min, current.high);
+                current.onChangeLow(next);
+            },
+        }),
+        high: PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => { startRef.current.high = stateRef.current.high; },
+            onPanResponderMove: (_, gesture) => {
+                const current = stateRef.current;
+                const span = current.max - current.min || 1;
+                const origin = ((startRef.current.high - current.min) / span) * widthRef.current;
+                const next = snapAmount(current.min + ((origin + gesture.dx) / widthRef.current) * span, current.low, current.max);
+                current.onChangeHigh(next);
+            },
+        }),
+    }).current;
+    const span = max - min || 1;
+    const lowX = ((low - min) / span) * 100;
+    const highX = ((high - min) / span) * 100;
+    return (<View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ fontFamily: fonts.mono, fontSize: 13, color: palette.text }}>{inr(low)}</Text>
+        <Text style={{ fontFamily: fonts.mono, fontSize: 13, color: palette.text }}>{inr(high)}</Text>
+      </View>
+      <View onLayout={(event) => { widthRef.current = event.nativeEvent.layout.width; }} style={{ height: 36, justifyContent: 'center' }}>
+        <View style={{ height: 4, borderRadius: 2, backgroundColor: palette.borderStrong }}/>
+        <View style={{ position: 'absolute', left: `${lowX}%`, width: `${Math.max(highX - lowX, 0)}%`, height: 4, borderRadius: 2, backgroundColor: palette.green }}/>
+        <View {...pans.low.panHandlers} style={{ position: 'absolute', left: `${lowX}%`, marginLeft: -12, width: 24, height: 24, borderRadius: 12, backgroundColor: palette.surface, borderWidth: 2, borderColor: palette.green }}/>
+        <View {...pans.high.panHandlers} style={{ position: 'absolute', left: `${highX}%`, marginLeft: -12, width: 24, height: 24, borderRadius: 12, backgroundColor: palette.surface, borderWidth: 2, borderColor: palette.green }}/>
+      </View>
+    </View>);
+}
+export function ProjectTransactionsScreen() {
+    const { styles, palette } = useStyles();
+    const { projects, activeProjectId, transactions } = useStore();
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const [dateFilter, setDateFilter] = useState('all');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [signFilter, setSignFilter] = useState('all');
+    const [range, setRange] = useState(null);
+    const project = projects.find((p) => p.id === activeProjectId);
+    const projectTx = useMemo(() => transactions.filter((t) => project && t.project === project.title), [transactions, project]);
+    const amountMax = useMemo(() => projectTx.reduce((peak, tx) => Math.max(peak, Math.abs(tx.amount)), 0), [projectTx]);
+    const low = range?.low ?? 0;
+    const high = range?.high ?? amountMax;
+    useEffect(() => {
+        setRange(null);
+    }, [project?.id, amountMax]);
+    const openFilters = useCallback(() => setFiltersOpen(true), []);
+    const filtersActive = dateFilter !== 'all' || signFilter !== 'all' || low > 0 || high < amountMax;
+    const groups = useMemo(() => groupTransactions(projectTx.filter((t) => inDateRange(t.date, dateFilter, fromDate, toDate)
+        && Math.abs(t.amount) >= low
+        && Math.abs(t.amount) <= high
+        && (signFilter === 'all' || (signFilter === 'positive' ? t.amount > 0 : t.amount < 0)))), [projectTx, dateFilter, fromDate, toDate, low, high, signFilter]);
+    const count = groups.reduce((n, g) => n + g.rows.length, 0);
+    useBackHeader(project?.title ?? 'Transactions', `Transactions (${count} ${count === 1 ? 'entry' : 'entries'})`, openFilters, filtersActive);
+    const resetFilters = () => {
+        setDateFilter('all');
+        setFromDate('');
+        setToDate('');
+        setSignFilter('all');
+        setRange(null);
+    };
+    return (<View style={styles.screen}>
+      <TransactionGroups groups={groups} />
+      <Sheet visible={filtersOpen} title="Filters" onClose={() => setFiltersOpen(false)}>
+        <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Date</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {DATE_FILTERS.map((item) => (<Chip key={item.id} label={item.label} active={dateFilter === item.id} onPress={() => setDateFilter(item.id)}/>))}
+        </View>
+        {dateFilter === 'custom' ? (<View style={{ flexDirection: 'row', gap: 10 }}>
+            <Field label="From" value={fromDate} onChangeText={setFromDate} placeholder="YYYY-MM-DD"/>
+            <Field label="To" value={toDate} onChangeText={setToDate} placeholder="YYYY-MM-DD"/>
+          </View>) : null}
+        <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Transactions</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {SIGN_FILTERS.map((item) => (<Chip key={item.id} label={item.label} active={signFilter === item.id} onPress={() => setSignFilter(item.id)}/>))}
+        </View>
+        <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Amount range</Text>
+        <RangeSlider min={0} max={amountMax} low={low} high={high} onChangeLow={(value) => setRange({ low: value, high })} onChangeHigh={(value) => setRange({ low, high: value })}/>
+        <Pressable onPress={resetFilters} style={{ alignSelf: 'flex-start', marginTop: 18, marginBottom: 8 }}>
+          <Text style={{ fontFamily: fonts.sansSemi, fontSize: 13, color: palette.green }}>Reset</Text>
+        </Pressable>
+      </Sheet>
     </View>);
 }
 export function ProjectDetailScreen() {
     const { styles, palette } = useStyles();
     const navigation = useNavigation();
-    const { projects, activeProjectId, setLedgerProject, openPartnerSheet } = useStore();
+    const { projects, activeProjectId, openPartnerSheet } = useStore();
     const project = projects.find((p) => p.id === activeProjectId);
     useBackHeader(project?.title ?? 'Project');
     if (!project)
@@ -169,10 +340,13 @@ export function ProjectDetailScreen() {
           <HeroStat label="Net profit — life of project" value={signedInr(project.profit)} color={project.profit >= 0 ? palette.green : palette.clay}/>
         </View>
       </View>
-      <SectionHead title="Partners in this project" right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={styles.hint}>{project.partners.length} partners</Text>
-            <AddButton label="+ Add" onPress={() => openPartnerSheet('project')}/>
-          </View>}/>
+      <View style={[styles.section, { alignItems: 'center' }]}>
+        <View>
+          <Text style={styles.h2}>Partners in this project</Text>
+          <Text style={[styles.hint, { marginTop: 4 }]}>{project.partners.length} {project.partners.length === 1 ? 'partner' : 'partners'}</Text>
+        </View>
+        <AddButton label="+ Add" onPress={() => openPartnerSheet('project')}/>
+      </View>
       <View style={styles.card}>
         {project.partners.map((p, i) => (<View key={p.name + i} style={{ flexDirection: 'row', gap: 12, paddingVertical: 14, paddingHorizontal: 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: palette.border }}>
             <Avatar initials={p.initials} color={p.color}/>
@@ -203,10 +377,7 @@ export function ProjectDetailScreen() {
       <Text style={{ fontFamily: fonts.sans, fontSize: 11.5, color: palette.muted2, lineHeight: 18, marginTop: 10 }}>
         Each project keeps its own partner roster and split. Profit is revenue minus expenses for each financial year.
       </Text>
-      <Pressable onPress={() => {
-            setLedgerProject(project.title);
-            navigation.navigate('Tabs', { screen: 'Ledger' });
-        }} style={{ borderWidth: 1, borderColor: palette.borderStrong, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginTop: 14 }}>
+      <Pressable onPress={() => navigation.navigate('ProjectTransactions')} style={{ borderWidth: 1, borderColor: palette.borderStrong, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginTop: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Text style={{ fontFamily: fonts.sansBold, color: palette.text }}>View this project's transactions</Text>
           <Icon name="arrow-right" size={16} color={palette.text}/>

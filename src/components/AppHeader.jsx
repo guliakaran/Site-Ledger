@@ -49,7 +49,7 @@ export function useMainHeader() {
   );
 }
 
-export function useBackHeader(title) {
+export function useBackHeader(title, subtitle, onAction, actionActive = false) {
   const navigation = useNavigation();
   const { palette } = useTheme();
 
@@ -59,10 +59,20 @@ export function useBackHeader(title) {
         <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={{ marginRight: 6 }}>
           <Icon name="chevron-left" size={28} color={palette.text} />
         </Pressable>
-        <Text numberOfLines={1} style={{ flex: 1, fontFamily: fonts.sansBold, fontSize: 18, color: palette.text, letterSpacing: -0.3 }}>{title}</Text>
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={1} style={{ fontFamily: fonts.sansBold, fontSize: 18, color: palette.text, letterSpacing: -0.3 }}>{title}</Text>
+          {subtitle ? (
+            <Text numberOfLines={1} style={{ fontFamily: fonts.sansSemi, fontSize: 12, color: palette.muted, marginTop: 1 }}>{subtitle}</Text>
+          ) : null}
+        </View>
+        {onAction ? (
+          <Pressable onPress={onAction} hitSlop={8} style={{ marginLeft: 8 }}>
+            <Icon name="filter-variant" size={22} color={actionActive ? palette.green : palette.text} />
+          </Pressable>
+        ) : null}
       </View>
     ),
-    [navigation, palette, title],
+    [navigation, palette, title, subtitle, onAction, actionActive],
   );
 }
 
