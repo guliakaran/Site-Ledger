@@ -37,11 +37,14 @@
 	<string/>
 	<key>UIAppFonts</key>
 	<array>
+		<string>MaterialCommunityIcons.ttf</string>
 		<string>Inter_400Regular.ttf</string>
 		<string>Inter_500Medium.ttf</string>
 		<string>Inter_600SemiBold.ttf</string>
 		<string>Inter_700Bold.ttf</string>
-		<string>MaterialCommunityIcons.ttf</string>
+		<string>Roboto-Bold.ttf</string>
+		<string>Roboto-Medium.ttf</string>
+		<string>Roboto-Regular.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

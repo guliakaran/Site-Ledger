@@ -1,0 +1,17 @@
+export const ENDPOINTS = {
+  LOGIN: '/auth/login',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  LOGOUT: '/auth/logout',
+  PROFILE: '/users/me',
+  SETTINGS: '/users/me/settings',
+  PROJECTS: '/projects',
+  PROJECT: (id) => `/projects/${id}`,
+  PARTNERS: '/partners',
+  PARTNER: (id) => `/partners/${id}`,
+  PROJECT_PARTNERS: '/project-partners',
+  PROJECT_PARTNER: (id) => `/project-partners/${id}`,
+  TRANSACTIONS: '/transactions',
+  TRANSACTION: (id) => `/transactions/${id}`,
+  REPORTS: '/reports',
+  NOTIFICATIONS: '/notifications',
+};

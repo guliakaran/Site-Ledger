@@ -3,20 +3,19 @@
  */
 
 import 'react-native-gesture-handler';
-import { AppRegistry, Platform, Text, TextInput } from 'react-native';
+import { AppRegistry, Text, TextInput } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
-
-const regular = Platform.OS === 'android' ? 'Inter_400Regular' : 'Inter-Regular';
+import { fontFamilies } from './src/theme/theme';
 
 if (Text.defaultProps == null) {
   Text.defaultProps = {};
 }
-Text.defaultProps.style = { fontFamily: regular };
+Text.defaultProps.style = { fontFamily: fontFamilies.regular };
 
 if (TextInput.defaultProps == null) {
   TextInput.defaultProps = {};
 }
-TextInput.defaultProps.style = { fontFamily: regular };
+TextInput.defaultProps.style = { fontFamily: fontFamilies.regular };
 
 AppRegistry.registerComponent(appName, () => App);

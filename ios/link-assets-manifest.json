@@ -16,6 +16,22 @@
     {
       "path": "assets/fonts/Inter_700Bold.ttf",
       "sha1": "5a912e0600350ef7bb9c7c2e6c585815bb30ca16"
+    },
+    {
+      "path": "assets/fonts/MaterialCommunityIcons.ttf",
+      "sha1": "4c2a838b00dbb5e8bb1b368fce0de534e8eb241c"
+    },
+    {
+      "path": "assets/fonts/Roboto-Bold.ttf",
+      "sha1": "e53cfe2fcb3a71e9af3cd19f233e58ead068013c"
+    },
+    {
+      "path": "assets/fonts/Roboto-Medium.ttf",
+      "sha1": "cb10ba492c3e9d8373e586a6dbf07f216728f822"
+    },
+    {
+      "path": "assets/fonts/Roboto-Regular.ttf",
+      "sha1": "6c6e8598aa7ac01e43f0934c6b8a6c0ad1157c1c"
     }
   ]
 }
